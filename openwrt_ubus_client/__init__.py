@@ -58,10 +58,28 @@ class OpenWrtUbusClient:
     async def send_commands(self) -> dict:
         if not self._commands:
             return {}
+
+        await self.check_token_expiry()
+
+        request = await self.map_commands()
+
+        response = await self.send_request(request)
+
+        return await self.map_response(response)
+
+    async def check_token_expiry(self):
         # Strictly speaking, the timeout is refreshed per request, but we'll get a fresh one anyway.
         if self._token_expiry - int(time.time()) < 15:
             await self.refresh_session()
 
+    async def send_request(self, request):
+        async with httpx.AsyncClient() as client:
+            raw_response = await client.post(self._url, json=request, headers=self._headers)
+        response = raw_response.json()
+
+        return response
+
+    async def map_commands(self):
         def convert(c):
             return {
                 "jsonrpc": "2.0",
@@ -76,14 +94,11 @@ class OpenWrtUbusClient:
             }
 
         request = list(map(convert, self._commands))
-
         self._commands.clear()
+        return request
 
-        async with httpx.AsyncClient() as client:
-            raw_response = await client.post(self._url, json=request, headers=self._headers)
-
-        response = raw_response.json()
-
+    @staticmethod
+    async def map_response(response):
         def map_result(res: dict):
             if "result" in res:
                 success_result = None
