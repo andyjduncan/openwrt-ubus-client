@@ -44,8 +44,8 @@ async def test_creates_new_login_session(httpx_mock: HTTPXMock, host, username, 
         method="POST",
         url=f"http://{host}/ubus",
         match_headers={'content-type': 'application/json'},
-        match_json=login_params(1, username, password),
-        json=login_response(1, random_string(10))
+        match_json=[login_params(1, username, password)],
+        json=[login_response(1, random_string(10))]
     )
 
     client = OpenWrtUbusClient(host, username, password)
@@ -56,12 +56,12 @@ async def test_creates_new_login_session(httpx_mock: HTTPXMock, host, username, 
 @pytest.mark.asyncio
 async def test_increments_command_id(httpx_mock: HTTPXMock, host, username, password):
     httpx_mock.add_response(
-        match_json=login_params(1, username, password),
-        json=login_response(1, random_string(10))
+        match_json=[login_params(1, username, password)],
+        json=[login_response(1, random_string(10))]
     )
     httpx_mock.add_response(
-        match_json=login_params(2, username, password),
-        json=login_response(2, random_string(10))
+        match_json=[login_params(2, username, password)],
+        json=[login_response(2, random_string(10))]
     )
 
     client = OpenWrtUbusClient(host, username, password)
@@ -73,14 +73,14 @@ async def test_increments_command_id(httpx_mock: HTTPXMock, host, username, pass
 @pytest.mark.asyncio
 async def test_raises_an_error_on_bad_credentials(httpx_mock: HTTPXMock, host, username, password):
     httpx_mock.add_response(
-        match_json=login_params(1, username, password),
-        json={
+        match_json=[login_params(1, username, password)],
+        json=[{
             "jsonrpc": "2.0",
             "id": 1,
             "result": [
                 6
             ]
-        }
+        }]
     )
 
     client = OpenWrtUbusClient(host, username, password)
@@ -93,8 +93,8 @@ async def test_raises_an_error_on_bad_credentials(httpx_mock: HTTPXMock, host, u
 async def test_sends_a_command_to_ubus(httpx_mock: HTTPXMock, host, username, password, session_id, path, procedure):
     auth_call = 2  # Queued commands get their ids before the token refresh
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     httpx_mock.add_response(
@@ -116,8 +116,8 @@ async def test_sends_a_command_to_ubus(httpx_mock: HTTPXMock, host, username, pa
 async def test_does_not_repeat_commands(httpx_mock: HTTPXMock, host, username, password, session_id, path, procedure):
     auth_call = 2  # Queued commands get their ids before the token refresh
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     httpx_mock.add_response(
@@ -140,8 +140,8 @@ async def test_does_not_repeat_commands(httpx_mock: HTTPXMock, host, username, p
 async def test_command_responds_are_identified_by_id(httpx_mock: HTTPXMock, host, username, password, session_id):
     auth_call = 3  # Queued commands get their ids before the token refresh
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     path1 = random_string(5)
@@ -195,8 +195,8 @@ async def test_maps_failed_commands_to_errors(httpx_mock: HTTPXMock, host, usern
                                               procedure):
     auth_call = 2
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     error_message = random_string(10)
@@ -231,8 +231,8 @@ async def test_does_not_refresh_valid_token(httpx_mock: HTTPXMock, host, usernam
                                             procedure):
     auth_call = 1
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     httpx_mock.add_response(
@@ -256,15 +256,15 @@ async def test_does_not_refresh_valid_token(httpx_mock: HTTPXMock, host, usernam
 async def test_refreshes_expired_token(httpx_mock: HTTPXMock, host, username, password, session_id, path, procedure):
     auth_call = 1
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, session_id)]
     )
 
     auth_call = 3
     new_session_id = random_string(10)
     httpx_mock.add_response(
-        match_json=login_params(auth_call, username, password),
-        json=login_response(auth_call, new_session_id)
+        match_json=[login_params(auth_call, username, password)],
+        json=[login_response(auth_call, new_session_id)]
     )
 
     httpx_mock.add_response(

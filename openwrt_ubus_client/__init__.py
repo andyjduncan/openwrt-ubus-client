@@ -17,33 +17,31 @@ class OpenWrtUbusClient:
         self._session_id = None
 
     async def refresh_session(self):
-        auth_payload = {
-            "jsonrpc": "2.0",
-            "id": next(self._call_id),
-            "method": "call",
-            "params": [
-                "00000000000000000000000000000000",
-                "session",
-                "login",
-                {
+        auth_call_id = next(self._call_id)
+        auth_request = await self.map_commands("00000000000000000000000000000000", [
+            {
+                "id": auth_call_id,
+                "path": "session",
+                "procedure": "login",
+                "params": {
                     "username": self._username,
                     "password": self._password,
                     "timeout": 600
                 }
-            ]
-        }
-        async with httpx.AsyncClient() as client:
-            raw_auth_response = await client.post(self._url, json=auth_payload, headers=self._headers)
+            }
+        ])
 
-        auth_response = raw_auth_response.json()
+        auth_response = await self.send_request(auth_request)
 
-        result_code = auth_response["result"][0]
+        auth_result = await self.map_response(auth_response)
+
+        result_code = auth_result[auth_call_id]["status"]
 
         if result_code == 6:
             raise BadCredentialsError
 
-        self._session_id = auth_response["result"][1]["ubus_rpc_session"]
-        self._token_expiry = int(time.time()) + auth_response["result"][1]["expires"]
+        self._session_id = auth_result[auth_call_id]["result"]["ubus_rpc_session"]
+        self._token_expiry = int(time.time()) + auth_result[auth_call_id]["result"]["expires"]
 
     def add_command(self, path, procedure, params={}) -> int:
         command_id = next(self._call_id)
@@ -61,7 +59,7 @@ class OpenWrtUbusClient:
 
         await self.check_token_expiry()
 
-        request = await self.map_commands()
+        request = await self.map_commands(self._session_id, self._commands)
 
         response = await self.send_request(request)
 
@@ -79,22 +77,23 @@ class OpenWrtUbusClient:
 
         return response
 
-    async def map_commands(self):
+    @staticmethod
+    async def map_commands(session_id, commands):
         def convert(c):
             return {
                 "jsonrpc": "2.0",
                 "id": c["id"],
                 "method": "call",
                 "params": [
-                    self._session_id,
+                    session_id,
                     c["path"],
                     c["procedure"],
                     c["params"]
                 ]
             }
 
-        request = list(map(convert, self._commands))
-        self._commands.clear()
+        request = list(map(convert, commands))
+        commands.clear()
         return request
 
     @staticmethod
