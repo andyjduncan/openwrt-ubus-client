@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 
-from openwrt_ubus_client import OpenWrtUbusClient
+from openwrt_ubus_client.client import OpenWrtUbusClient
 
 
 async def main():

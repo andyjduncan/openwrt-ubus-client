@@ -5,7 +5,7 @@ import pytest
 import time_machine
 from pytest_httpx import HTTPXMock
 
-from openwrt_ubus_client import OpenWrtUbusClient, BadCredentialsError
+from openwrt_ubus_client.client import OpenWrtUbusClient, BadCredentialsError
 
 
 @pytest.fixture
